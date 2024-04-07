@@ -11,4 +11,4 @@ model = Chain(
 )
 
 ChainPlots.plot(model)
-savefig("model.pdf")
+savefig("model.svg")

@@ -16,7 +16,7 @@ y = [y[2] for y in testingData]
 println("Loaded data")
 
 model = Nothing
-BSON.@load "model100.bson" model
+BSON.@load "model512.bson" model
 if model == Nothing
     println("Model not found")
     exit()
