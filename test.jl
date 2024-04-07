@@ -7,6 +7,8 @@ using Flux
 using NNlib
 println("Loaded modules")
 
+ONLY_LOWEST = true
+
 data = load("data.jld")
 testingData = data["testing"]
 
@@ -16,7 +18,7 @@ y = [y[2] for y in testingData]
 println("Loaded data")
 
 model = Nothing
-BSON.@load "model512.bson" model
+BSON.@load "model512$(ONLY_LOWEST ? "s" : "").bson" model
 if model == Nothing
     println("Model not found")
     exit()
@@ -25,6 +27,10 @@ end
 println("Loaded model")
 
 function plotSingularValues(x, y, model)
+    if ONLY_LOWEST
+        return
+    end
+
     for i in 1:10
         y_pred = model(reshape(x[i].data, 9))
         savefig(plot([1, 2, 3], [y[i], y_pred], title="Singular values", label=["True" "Pred"]), "singular$i.png")
@@ -46,6 +52,10 @@ function testAnalysis(y)
 end
 
 function testLoss(x, y, model)
+    if ONLY_LOWEST
+        return
+    end
+
     losses = []
     for i in eachindex(x)
         push!(losses, Flux.mae(model(reshape(x[i].data, 9)), y[i], agg=sum))
@@ -60,7 +70,11 @@ end
 function testLossLowestSingular(x, y, model)
     losses = []
     for i in eachindex(x)
-        push!(losses, abs(model(reshape(x[i].data, 9))[3] - y[i][3]))
+        if ONLY_LOWEST
+            push!(losses, abs(model(reshape(x[i].data, 9))[1] - y[i][3]))
+        else
+            push!(losses, abs(model(reshape(x[i].data, 9))[3] - y[i][3]))
+        end
     end
     println("Loss - LOWEST SINGULAR VALUE")
     println("Mean loss: ", mean(losses))
