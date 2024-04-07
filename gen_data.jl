@@ -6,8 +6,10 @@ gr()
 
 using LinearAlgebra
 
-TRAINING_SAMPLES = 1#100000
-TEST_SAMPLES = 1#10000
+using JLD
+
+TRAINING_SAMPLES = 100000
+TEST_SAMPLES = 10000
 N = 3
 
 function sampleEigenvalues()
@@ -24,28 +26,38 @@ function sampleEigenvalues()
 end
 
 function sampleMatrix()
-    return tridrand(Wigner(1), 3)
+    return rand(Wigner(1), 3)
 end
 
-function plotDist()
-    values = []
-    for i in 1:100
-        append!(values, sampleEigenvalues())
+function plotEigenvalues()
+    dist = []
+    matrix = []
+    for i in 1:10000
+        append!(dist, sampleEigenvalues())
+        append!(matrix, eigvals(sampleMatrix()))
     end
-    savefig(histogram(values, bins=100, title="Dist Eigenvalues"), "dist.png")
+    savefig(histogram([dist, matrix], bins=100, title="Eigenvalues", label=["dist" "matrix"], fillcolor=[:red :black], fillalpha=0.2, normalize=:pdf), "eigenvalues.png")
 end
 
-function plotMatrix()
-    values = []
-    for i in 1:100
-        append!(values, eigvals(sampleMatrix()))
+function plotMatrixValues()
+    dist = []
+    matrix = []
+    for i in 1:10000
+        Q = rand(Haar(1), 3)
+        append!(dist, reshape(Q * Diagonal(sampleEigenvalues()) * Q', 9))
+
+        append!(matrix, reshape(sampleMatrix(), 9))
     end
-    savefig(histogram(values, bins=100, title="Matrix Eigenvalues"), "matrix.png")
+    savefig(histogram([dist, matrix], bins=100, title="Matrix values", label=["dist" "matrix"], fillcolor=[:red :black], fillalpha=0.2, normalize=:pdf), "matrixValues.png")
 end
 
 function generateTrainingData()
     training = []
     for i in 1:TRAINING_SAMPLES
+        if i % 1000 == 0
+            println(i)
+        end
+
         # Initialize eigenvalues using passed distribution
         λs = sampleEigenvalues()
 
@@ -64,6 +76,11 @@ end
 function generateTestingData()
     testing = []
     for i in 1:TEST_SAMPLES
+        if i % 1000 == 0
+            println(i)
+        end
+
+        # Initialize matrix using Gaussian orthogonal ensemble (https://github.com/JuliaMath/RandomMatrices.jl/blob/6b01eb2cb3c6cb2cf2d5676e8d1223022f3a8d9c/src/GaussianEnsembles.jl#L48)
         A = sampleMatrix()
 
         σs = svdvals(A)
@@ -74,11 +91,18 @@ function generateTestingData()
     return testing
 end
 
-plotDist()
-plotMatrix()
+function analyze()
+    if true
+        plotEigenvalues()
+        plotMatrixValues()
+    end
+end
 
-exit()
-
-trainingData = generateTrainingData()
-testingData = generateTestingData()
-println(trainingData, testingData)
+if true
+    analyze()
+else
+    trainingData = generateTrainingData()
+    testingData = generateTestingData()
+    # println(trainingData, testingData)
+    save("data.jld", "training", trainingData, "testing", testingData)
+end
