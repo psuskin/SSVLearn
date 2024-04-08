@@ -2,6 +2,8 @@ using JLD
 using BSON
 using Plots
 using Statistics
+using Random
+using LinearAlgebra
 
 using Flux
 using NNlib
@@ -27,7 +29,7 @@ if model == Nothing
     exit()
 end
 
-baseline(x) = x * [1.0, 0.5, 0.0]
+baseline(x) = [1.0, 0.5, 0.0] # x * [1.0, 0.5, 0.0]
 
 println("Loaded model")
 
@@ -68,6 +70,28 @@ function plotSingularValues(x, y, model)
     for i in 1:10
         y_pred = model(reshape(x[i].data, 9))
         savefig(plot([1, 2, 3], [y[i], y_pred], title="Singular values", label=["True" "Pred"]), "$DIR/plots/singular$i.png")
+    end
+end
+
+function testRandom(model)
+    # Set random seed
+    Random.seed!(1234)
+
+    # Random matrix with values between -100 and 100
+    randomMatrix = rand(Float32, (3, 3)) * 200 .- 100
+    singulars = svdvals(randomMatrix)
+    println("Random matrix: ", randomMatrix)
+    println("Singular values: ", singulars)
+
+    # Predictions
+    y_pred = model(reshape(randomMatrix, 9))
+    y_baseline = baseline(randomMatrix)
+    
+    if ONLY_LOWEST
+        println("Error: ", abs(y_pred[1] - singulars[3]), " | Baseline: ", abs(y_baseline[3] - singulars[3]))
+    else
+        println("Error: ", Flux.mae(y_pred, singulars, agg=sum), " | Baseline: ", Flux.mae(y_baseline, singulars, agg=sum))
+        savefig(plot([1, 2, 3], [singulars, y_pred, y_baseline], title="Random matrix", label=["True" "Pred" "Baseline"]), "$DIR/plots/random.png")
     end
 end
 
@@ -124,6 +148,7 @@ end
 
 # plotLoss()
 # plotSingularValues(x, y, model)
+# testRandom(model)
 testAnalysis(y)
 testLoss(x, y, model)
 testLossLowestSingular(x, y, model)
