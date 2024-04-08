@@ -27,6 +27,8 @@ if model == Nothing
     exit()
 end
 
+baseline(x) = x * [1.0, 0.5, 0.0]
+
 println("Loaded model")
 
 function plotLoss()
@@ -89,34 +91,38 @@ function testLoss(x, y, model)
     end
 
     losses = []
+    lossesBaseline = []
     for i in eachindex(x)
         push!(losses, Flux.mae(model(reshape(x[i].data, 9)), y[i], agg=sum))
+        push!(lossesBaseline, Flux.mae(baseline(x[i].data), y[i], agg=sum))
     end
     println("Loss - ALL SINGULAR VALUES")
-    println("Mean loss: ", mean(losses))
-    println("Std loss: ", std(losses))
-    println("Max loss: ", maximum(losses))
-    println("Min loss: ", minimum(losses))
+    println("Mean loss: ", mean(losses), " | Baseline: ", mean(lossesBaseline))
+    println("Std loss: ", std(losses), " | Baseline: ", std(lossesBaseline))
+    println("Max loss: ", maximum(losses), " | Baseline: ", maximum(lossesBaseline))
+    println("Min loss: ", minimum(losses), " | Baseline: ", minimum(lossesBaseline))
 end
 
 function testLossLowestSingular(x, y, model)
     losses = []
+    lossesBaseline = []
     for i in eachindex(x)
         if ONLY_LOWEST
             push!(losses, abs(model(reshape(x[i].data, 9))[1] - y[i][3]))
         else
             push!(losses, abs(model(reshape(x[i].data, 9))[3] - y[i][3]))
         end
+        push!(lossesBaseline, abs(baseline(x[i].data)[3] - y[i][3]))
     end
     println("Loss - LOWEST SINGULAR VALUE")
-    println("Mean loss: ", mean(losses))
-    println("Std loss: ", std(losses))
-    println("Max loss: ", maximum(losses))
-    println("Min loss: ", minimum(losses))
+    println("Mean loss: ", mean(losses), " | Baseline: ", mean(lossesBaseline))
+    println("Std loss: ", std(losses), " | Baseline: ", std(lossesBaseline))
+    println("Max loss: ", maximum(losses), " | Baseline: ", maximum(lossesBaseline))
+    println("Min loss: ", minimum(losses), " | Baseline: ", minimum(lossesBaseline))
 end
 
 
-plotLoss()
+# plotLoss()
 # plotSingularValues(x, y, model)
 testAnalysis(y)
 testLoss(x, y, model)
