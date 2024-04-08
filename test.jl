@@ -9,6 +9,9 @@ println("Loaded modules")
 
 ONLY_LOWEST = true
 
+version = "initial"
+DIR = "experiments/$version"
+
 data = load("data.jld")
 testingData = data["testing"]
 
@@ -18,13 +21,42 @@ y = [y[2] for y in testingData]
 println("Loaded data")
 
 model = Nothing
-BSON.@load "model512$(ONLY_LOWEST ? "s" : "").bson" model
+BSON.@load "$DIR/model512$(ONLY_LOWEST ? "s" : "").bson" model
 if model == Nothing
     println("Model not found")
     exit()
 end
 
 println("Loaded model")
+
+function plotLoss()
+    open("$DIR/loss.txt", "r") do f
+        currentPlot = ""
+        trainingLoss = []
+        validationLoss = []
+        for line in eachline(f)
+            if !contains(line, "Epoch")
+                if !isempty(trainingLoss)
+                    plot(trainingLoss, label="Training loss", title="Loss", xlabel="Epoch", ylabel="Loss", yaxis=:log)
+                    plot!(validationLoss, label="Validation loss")
+                    savefig("$DIR/plots/loss_$currentPlot.png")
+                    trainingLoss = []
+                    validationLoss = []
+                end
+                currentPlot = line
+            else
+                # Lines has this format: Epoch: 0, trainingloss: 1.7562293881121427 | validation loss: 1.7520427667608514
+                append!(trainingLoss, parse(Float64, split(split(line, "|")[1], ":")[3]))
+                append!(validationLoss, parse(Float64, split(split(line, "|")[2], ":")[2]))
+            end
+        end
+        if !isempty(trainingLoss)
+            plot(trainingLoss, label="Training loss", title="Loss", xlabel="Epoch", ylabel="Loss", yaxis=:log)
+            plot!(validationLoss, label="Validation loss")
+            savefig("$DIR/plots/loss_$currentPlot.png")
+        end
+    end
+end
 
 function plotSingularValues(x, y, model)
     if ONLY_LOWEST
@@ -33,7 +65,7 @@ function plotSingularValues(x, y, model)
 
     for i in 1:10
         y_pred = model(reshape(x[i].data, 9))
-        savefig(plot([1, 2, 3], [y[i], y_pred], title="Singular values", label=["True" "Pred"]), "singular$i.png")
+        savefig(plot([1, 2, 3], [y[i], y_pred], title="Singular values", label=["True" "Pred"]), "$DIR/plots/singular$i.png")
     end
 end
 
@@ -84,6 +116,7 @@ function testLossLowestSingular(x, y, model)
 end
 
 
+plotLoss()
 # plotSingularValues(x, y, model)
 testAnalysis(y)
 testLoss(x, y, model)
