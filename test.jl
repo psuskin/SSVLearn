@@ -11,8 +11,10 @@ println("Loaded modules")
 
 ONLY_LOWEST = true
 
-version = "second"
+versions = ["initial", "second"]
+version = versions[2]
 DIR = "experiments/$version"
+println("Experiment: $version")
 
 datasets = ["testing", "uniform_large_matrix_values", "uniform_eigenvalues"]
 DATASET = datasets[1]
@@ -39,7 +41,9 @@ if model == Nothing
     exit()
 end
 
-baseline(x) = [1.0, 0.5, 0.0] # x * [1.0, 0.5, 0.0]
+# baseline(x) = [1.0, 0.5, 0.0]
+means = mean(vec(y))
+baseline(x) = means
 
 println("Loaded model")
 
