@@ -54,7 +54,8 @@ loss(m, x, y) = Flux.mae(m(x), y, agg=sum)
 # loss(m, x, y) = Flux.mse(m(x), y)
 
 # OPTIMIZER: 
-opt = Flux.setup(Descent(0.001), model)
+# opt = Flux.setup(Descent(0.001), model)
+opt = Flux.setup(ADAM(0.0001), model)
 # opt = Flux.setup(Adam(), model)
 # opt = Flux.setup(Descent(), model)
 
