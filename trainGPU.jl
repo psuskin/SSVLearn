@@ -1,6 +1,8 @@
 using Flux
 using JLD
 using BSON
+using LinearAlgebra
+using CUDA
 println("Loaded modules")
 
 ONLY_LOWEST = true
@@ -16,12 +18,12 @@ y = [ONLY_LOWEST ? y[2][3] : y[2] for y in trainingData]
 split = 0.8
 split_index = round(Int, split*length(x))
 x_train = x[1:split_index]
+x_train_gpu = hcat(x_train...)
 y_train = y[1:split_index]
+y_train_gpu = hcat(y_train...)
 x_validation = x[split_index+1:end]
 y_validation = y[split_index+1:end]
-
-println(size(x_train), size(y_train), size(x_validation), size(y_validation))
-println(size(x_train[1]), size(y_train[1]))
+gpu_train_loader = Flux.DataLoader((x_train_gpu, y_train_gpu)) |> gpu
 
 println("Loaded data")
 
@@ -46,7 +48,7 @@ elseif model_size == "large"
         Dense(75, 25, relu),
         Dense(25, 10, relu),
         Dense(10, ONLY_LOWEST ? 1 : 3)
-    )
+    ) |> gpu
 end
 
 # LOSS FUNCTION:
@@ -61,8 +63,10 @@ opt = Flux.setup(ADAM(0.0001), model)
 
 function compound_loss(m, x, y)
     losses = []
-    for i in eachindex(x)
-        push!(losses, loss(m, x[i], y[i]))
+    for (input, output) in zip(x, y)
+        input = input |> gpu
+        output = output |> gpu
+        push!(losses, loss(m, input, output))
     end
     return sum(losses) / length(losses)
 end
@@ -71,12 +75,15 @@ println("Training model")
 
 # n_epochs = 256
 n_epochs = 5000
-println("Epoch: 0, trainingloss: ", compound_loss(model, x_train, y_train), " | validation loss: ", compound_loss(model, x_validation, y_validation))
+# println("Epoch: 0, trainingloss: ", compound_loss(model, x_train, y_train), " | validation loss: ", compound_loss(model, x_validation, y_validation))
 for epoch in 1:n_epochs
-    Flux.train!(loss, model, zip(x_train, y_train), opt)
-    println("Epoch: $epoch, trainingloss: ", compound_loss(model, x_train, y_train), " | validation loss: ", compound_loss(model, x_validation, y_validation))
+    Flux.train!(loss, model, gpu_train_loader, opt)
+    println("Epoch: $epoch")
+    # println("Epoch: $epoch, trainingloss: ", compound_loss(model, x_train, y_train), " | validation loss: ", compound_loss(model, x_validation, y_validation))
 end
 
 println("Saving model")
 
-BSON.@save "model.bson" model
+let model = cpu(model)
+    BSON.@save "model.bson" model
+end
