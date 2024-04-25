@@ -1,6 +1,7 @@
 using Flux
 using JLD
 using BSON
+using LinearAlgebra
 println("Loaded modules")
 
 ONLY_LOWEST = true
@@ -9,7 +10,7 @@ data = load("data.jld")
 trainingData = data["training"]
 # println(trainingData[1])
 
-x = [reshape(x[1], 9) for x in trainingData]
+x = [let utv = vec(triu(x[1])); utv[utv .!= 0] end for x in trainingData]
 y = [ONLY_LOWEST ? y[2][3] : y[2] for y in trainingData]
 # println(x[1], y[1])
 
@@ -41,7 +42,7 @@ if model_size == "small"
     )
 elseif model_size == "large"
     model = Chain(
-        Dense(9, 100, relu),
+        Dense(6, 100, relu),
         Dense(100, 75, relu),
         Dense(75, 25, relu),
         Dense(25, 10, relu),
@@ -70,7 +71,7 @@ end
 println("Training model")
 
 # n_epochs = 256
-n_epochs = 5000
+n_epochs = 512
 println("Epoch: 0, trainingloss: ", compound_loss(model, x_train, y_train), " | validation loss: ", compound_loss(model, x_validation, y_validation))
 for epoch in 1:n_epochs
     Flux.train!(loss, model, zip(x_train, y_train), opt)
