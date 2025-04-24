@@ -8,6 +8,8 @@ using LinearAlgebra
 
 using JLD
 
+using Random
+
 TRAINING_SAMPLES = 100000
 TEST_SAMPLES = 10000
 N = 3
@@ -37,6 +39,18 @@ function plotEigenvalues()
         append!(matrix, eigvals(sampleMatrix()))
     end
     savefig(histogram([dist, matrix], bins=100, title="Eigenvalues", label=["dist" "matrix"], fillcolor=[:red :black], fillalpha=0.2, normalize=:pdf), "eigenvalues.png")
+    println("Mean absolute eigenvalue in training data: ", mean(abs.(dist)))
+    println("Mean absolute eigenvalue in testing data: ", mean(abs.(matrix)))
+    open("eigenvalues_dist.txt", "w") do f
+        for v in dist
+            println(f, v)
+        end
+    end
+    open("eigenvalues_matrix.txt", "w") do f
+        for v in matrix
+            println(f, v)
+        end
+    end
 end
 
 function plotMatrixValues()
@@ -49,6 +63,8 @@ function plotMatrixValues()
         append!(matrix, reshape(sampleMatrix(), 9))
     end
     savefig(histogram([dist, matrix], bins=100, title="Matrix values", label=["dist" "matrix"], fillcolor=[:red :black], fillalpha=0.2, normalize=:pdf), "matrixValues.png")
+    println("Mean absolute matrix value in training data: ", mean(abs.(dist)))
+    println("Mean absolute matrix value in testing data: ", mean(abs.(matrix)))
 end
 
 function generateTrainingData()
@@ -93,6 +109,7 @@ end
 
 function analyze()
     if true
+        Random.seed!(42)
         plotEigenvalues()
         plotMatrixValues()
     end

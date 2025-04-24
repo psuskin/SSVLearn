@@ -9,11 +9,11 @@ using Flux
 using NNlib
 println("Loaded modules")
 
-ONLY_LOWEST = true
-ITERATIONS = 5000
+ONLY_LOWEST = false
+ITERATIONS = 512
 
 versions = ["initial", "second"]
-version = versions[2]
+version = versions[1]
 DIR = "experiments/$version"
 println("Experiment: $version")
 
@@ -126,6 +126,31 @@ function plotSingularValues(x, y, model)
     end
 end
 
+function printSingularValues(x, y, model)
+    if ONLY_LOWEST
+        return
+    end
+
+    for i in 1:12
+        y_pred = model(reshape(x[i], 9))
+
+        println("Set $i")
+
+        println("Singular values")
+        for j in 1:3
+            println("($j, $(y[i][j]))")
+        end
+        
+        println("Predicted singular values")
+        for j in 1:3
+            println("($j, $(y_pred[j]))")
+        end
+
+        println()
+    end
+    exit()
+end
+
 function testRandom(model)
     # Set random seed
     Random.seed!(1234)
@@ -202,6 +227,7 @@ function testLossLowestSingular(x, y, model)
 end
 
 
+printSingularValues(x, y, model)
 # plotLoss()
 printLoss()
 plotSingularValues(x, y, model)
